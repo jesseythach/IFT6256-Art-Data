@@ -4,10 +4,15 @@ let table;
 let emissions = {};
 let years = [];
 let provinces = [];
-let minVal = Infinity;
-let maxVal = -Infinity;
 let startYear = 2009;
 let endYear = 2023;
+
+const INNER_RADIUS = 30;
+const RING_SPACING = 28;
+const MIN_THICKNESS = 2;
+const MAX_THICKNESS = 14;
+const MAX_GAP_WIDTH = 5; // Max gap width in radians
+const MAX_TOTAL_GAP_PERCENT = 0.3; // Max 30% of the ring can be gaps
 
 // ================================= Canvas =================================
 
@@ -25,6 +30,8 @@ function setup() {
   angleMode(RADIANS);
   noLoop();
   processData();
+  years = Object.keys(emissions).map(Number).sort();
+  provinces = Object.keys(emissions[years[0]]).sort();
   drawRadialChart();
 }
 
@@ -32,6 +39,7 @@ function preload() {
   table = loadTable("emissions.csv", "csv", "header");
 }
 
+// ================================= Data Processing =================================
 function processData() {
   let currentProvince = "";
 
@@ -40,82 +48,115 @@ function processData() {
     let sector = table.getString(row, "Sector");
 
     // Get province name
-    if (geo !== "" && geo !== "Canada") {
+    if (geo !== "") {
       currentProvince = geo;
-    }
 
-    // Keep total emissions for industries and households
-    if (
-      sector === "Total, industries and households" &&
-      currentProvince !== ""
-    ) {
-      emissions[currentProvince] = {};
+      // Keep total emissions for industries and households
+      if (
+        sector === "Total, industries and households" &&
+        currentProvince !== "Canada"
+      ) {
+        for (let year = startYear; year <= endYear; year++) {
+          if (!emissions[year]) {
+            emissions[year] = {};
+          }
 
-      for (let year = startYear; year <= endYear; year++) {
-        let value = table.getString(row, year.toString());
-        if (value) {
-          value = Number(value.replace(/,/g, ""));
-          emissions[currentProvince][year] = value;
-
-          minVal = min(minVal, value);
-          maxVal = max(maxVal, value);
+          let value = table.getString(row, year.toString());
+          value = Number(value.replace(/,/g, "").trim());
+          emissions[year][currentProvince] = value;
         }
       }
     }
   }
-
-  provinces = Object.keys(emissions);
-
-  for (let year = startYear; year <= endYear; year++) {
-    // todo: can I put this for loop outside of processData?
-    years.push(year);
-  }
-
   console.log(emissions);
-  console.log("Min:", minVal, "Max:", maxVal);
 }
 
+// ================================= Visualization =================================
 function drawRadialChart() {
-  background(240);
+  background(20); // change to black
+  
+  push();
   translate(width / 2, height / 2);
+  
+  // Each ring represents a year
+  for (let year = 0; year < years.length; year++) {
+    let currentYear = years[year];
+    let radius = INNER_RADIUS + year * RING_SPACING;
+    let angleCursor = -PI / 2; // start from the top
 
-  let innerRadius = 20; // todo: global variable?
-  let ringSpacing = 40; // todo: global variable?
-
-  let startAngle = -PI / 2; // start from top
-  let maxAngle = TWO_PI * 0.85; // leave gap like example
-
-  for (let y = 0; y < years.length; y++) {
-    let year = years[y];
-    let radius = innerRadius + y * ringSpacing;
-    let angleCursor = startAngle;
-
+    // Generate random gaps for each province
+    let gaps = [];
+    let totalGapAngles = 0;
     for (let p = 0; p < provinces.length; p++) {
-      let province = provinces[p];
-      let value = emissions[province][year];
+      let randGap = random(0.05, MAX_GAP_WIDTH); // Random gap width
+      gaps.push(randGap);
+      totalGapAngles += randGap;
+    }
 
-      if (!value) continue;
+    // Normalize gaps so they don't consume the whole circle
+    let maxGapAllowed = TWO_PI * MAX_TOTAL_GAP_PERCENT;
+    if (totalGapAngles > maxGapAllowed) {
+      let scale = maxGapAllowed / totalGapAngles;
+      gaps = gaps.map((g) => g * scale);
+      totalGapAngles = maxGapAllowed;
+    }
 
-      // map emissions to arc length
-      let arcSize = map(
-        value,
-        minVal,
-        maxVal,
-        0.01,
-        (maxAngle / provinces.length) * 1.8,
-      );
+    // Calculate available angle (360 degrees minus the total gaps)
+    let availableAngle = TWO_PI - totalGapAngles;
+
+    let yearlyTotal = 0;
+    for (let p = 0; p < provinces.length; p++) {
+      yearlyTotal += emissions[currentYear][provinces[p]];
+    }
+
+    // Each segment represents a province's emissions for that year
+    for (let p = 0; p < provinces.length; p++) {
+      let emissionAmount = emissions[currentYear][provinces[p]];
+      let arcSize = (emissionAmount / yearlyTotal) * availableAngle;
       let endAngle = angleCursor + arcSize;
-      let col = color(map(p, 0, provinces.length, 50, 200), 150, 200);
 
-      drawArcSegment(angleCursor, endAngle, radius, 18, col);
-      angleCursor += arcSize + 0.03; // spacing between segments
+      let randThickness = random(MIN_THICKNESS, MAX_THICKNESS);
+
+      let arcColor = getProvinceColor(p, provinces.length);
+      drawArcSegment(angleCursor, endAngle, radius, randThickness, arcColor);
+
+      // Advance cursor by the data segment + the unique random gap
+      angleCursor = endAngle + gaps[p];
     }
   }
+  pop();
+
+  drawLegend();
 }
 
-function drawArcSegment(startAngle, endAngle, radius, thickness, col) {
-  stroke(col);
+function drawArcSegment(startAngle, endAngle, radius, thickness, color) {
+  stroke(color);
   strokeWeight(thickness);
   noFill();
   arc(0, 0, radius * 2, radius * 2, startAngle, endAngle);
+}
+
+function getProvinceColor(index, total) {
+  colorMode(HSB, 360, 100, 100);
+  let hue = map(index, 0, total, 180, 280); // Blue to Purple range
+  return color(hue, 60, 80);
+}
+
+function drawLegend() {
+  push();
+  translate(150, height / 2 - (provinces.length * 20) / 2);
+
+  textAlign(LEFT, CENTER);
+  textSize(20);
+  noStroke();
+
+  for (let i = 0; i < provinces.length; i++) {
+    let color = getProvinceColor(i, provinces.length);
+    fill(color);
+    rect(0, i * 20, 12, 12); // Color swatch
+
+    fill(255); // Text color
+    text(provinces[i], 20, i * 20 + 6);
+  }
+  pop();
 }
