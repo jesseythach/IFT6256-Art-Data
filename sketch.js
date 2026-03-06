@@ -8,11 +8,9 @@ let startYear = 2009;
 let endYear = 2023;
 
 const INNER_RADIUS = 30;
-const RING_SPACING = 28;
-const MIN_THICKNESS = 2;
-const MAX_THICKNESS = 14;
-const MAX_GAP_WIDTH = 5; // Max gap width in radians
-const MAX_TOTAL_GAP_PERCENT = 0.3; // Max 30% of the ring can be gaps
+const RING_SPACING = 28; // randomize it after animation 
+const MIN_THICKNESS = 4;
+const MAX_THICKNESS = 18;
 
 // ================================= Canvas =================================
 
@@ -30,7 +28,7 @@ function setup() {
   angleMode(RADIANS);
   noLoop();
   processData();
-  years = Object.keys(emissions).map(Number).sort();
+  years = shuffle(Object.keys(emissions).map(Number));
   provinces = Object.keys(emissions[years[0]]).sort();
   drawRadialChart();
 }
@@ -68,64 +66,66 @@ function processData() {
       }
     }
   }
-  console.log(emissions);
+  // console.log(emissions);
 }
 
 // ================================= Visualization =================================
 function drawRadialChart() {
-  background(20); // change to black
-  
+  randomSeed(42);
+  background(20);
+  strokeCap(SQUARE);
+
   push();
   translate(width / 2, height / 2);
-  
+
   // Each ring represents a year
   for (let year = 0; year < years.length; year++) {
     let currentYear = years[year];
     let radius = INNER_RADIUS + year * RING_SPACING;
-    let angleCursor = -PI / 2; // start from the top
+    let angleCursor = random(TWO_PI);
+
+    let shuffledProvinces = shuffle(provinces);
 
     // Generate random gaps for each province
     let gaps = [];
     let totalGapAngles = 0;
-    for (let p = 0; p < provinces.length; p++) {
-      let randGap = random(0.05, MAX_GAP_WIDTH); // Random gap width
+    for (let p = 0; p < shuffledProvinces.length; p++) {
+      let randGap = random(0.1, 1.5); // Random gap width
       gaps.push(randGap);
       totalGapAngles += randGap;
     }
 
     // Normalize gaps so they don't consume the whole circle
-    let maxGapAllowed = TWO_PI * MAX_TOTAL_GAP_PERCENT;
-    if (totalGapAngles > maxGapAllowed) {
-      let scale = maxGapAllowed / totalGapAngles;
-      gaps = gaps.map((g) => g * scale);
-      totalGapAngles = maxGapAllowed;
-    }
+    let randomGapPercent = random(0.1, 0.8);
+    let maxGapAllowed = TWO_PI * randomGapPercent;
+    let scale = maxGapAllowed / totalGapAngles;
+    gaps = gaps.map((g) => g * scale);
+    totalGapAngles = maxGapAllowed;
 
     // Calculate available angle (360 degrees minus the total gaps)
     let availableAngle = TWO_PI - totalGapAngles;
 
     let yearlyTotal = 0;
-    for (let p = 0; p < provinces.length; p++) {
-      yearlyTotal += emissions[currentYear][provinces[p]];
+    for (let p = 0; p < shuffledProvinces.length; p++) {
+      yearlyTotal += emissions[currentYear][shuffledProvinces[p]];
     }
 
     // Each segment represents a province's emissions for that year
-    for (let p = 0; p < provinces.length; p++) {
-      let emissionAmount = emissions[currentYear][provinces[p]];
+    for (let p = 0; p < shuffledProvinces.length; p++) {
+      let emissionAmount = emissions[currentYear][shuffledProvinces[p]];
       let arcSize = (emissionAmount / yearlyTotal) * availableAngle;
       let endAngle = angleCursor + arcSize;
 
       let randThickness = random(MIN_THICKNESS, MAX_THICKNESS);
+      let originalIndex = provinces.indexOf(shuffledProvinces[p]);
+      let arcColor = getProvinceColor(originalIndex, provinces.length);
 
-      let arcColor = getProvinceColor(p, provinces.length);
       drawArcSegment(angleCursor, endAngle, radius, randThickness, arcColor);
 
-      // Advance cursor by the data segment + the unique random gap
       angleCursor = endAngle + gaps[p];
     }
   }
   pop();
-
   drawLegend();
 }
 
