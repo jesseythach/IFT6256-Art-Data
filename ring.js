@@ -14,6 +14,15 @@ class Segment {
     strokeCap(SQUARE);
     arc(0, 0, radius * 2, radius * 2, this.start, this.end);
   }
+ 
+  // Check if mouse is over this segment based on polar coordinates
+  isMouseOver(radius, angle, dist) {
+    let inner = radius - this.thickness / 2;
+    let outer = radius + this.thickness / 2;
+    let withinRadius = dist >= inner && dist <= outer;
+    let withinAngle = angle >= this.start && angle <= this.end;
+    return withinRadius && withinAngle;
+  }
 }
 
 // ===============================================================================
@@ -50,7 +59,11 @@ class Ring {
     let availableAngle = TWO_PI - maxGapAllowed; // Angle available for segments after accounting for gaps
 
     // Create segments for each province based on their emissions
-    for (let shuffledIndex = 0; shuffledIndex < shuffledProvinces.length; shuffledIndex++) {
+    for (
+      let shuffledIndex = 0;
+      shuffledIndex < shuffledProvinces.length;
+      shuffledIndex++
+    ) {
       let province = shuffledProvinces[shuffledIndex];
       let emission = provinceEmission[province];
       let arcSize = (emission / yearlyTotal) * availableAngle; // Scale arc size based on available angle
@@ -77,5 +90,21 @@ class Ring {
       seg.display(this.radius);
     }
     pop();
+  }
+
+  // Determine if mouse is hovering over any segment in this ring
+  getHoveredSegment(mouseAngle, mouseDist) {
+    let adjustedRotation = abs(this.rotation) % TWO_PI * Math.sign(this.rotation);
+    let adjustedAngle = mouseAngle - adjustedRotation;
+
+    if (adjustedAngle < 0) adjustedAngle += TWO_PI;
+    if (adjustedAngle > TWO_PI) adjustedAngle -= TWO_PI;
+
+    for (let seg of this.segments) {
+      if (seg.isMouseOver(this.radius, adjustedAngle, mouseDist)) {
+        return seg;
+      }
+    }
+    return null;
   }
 }
