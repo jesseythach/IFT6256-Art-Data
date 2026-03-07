@@ -1,15 +1,14 @@
 // Represents an arc segment for a province in a given year
 class Segment {
-  constructor(start, end, thickness, color, provinceName) {
+  constructor(start, end, thickness, provinceName) {
     this.start = start;
     this.end = end;
     this.thickness = thickness;
-    this.color = color;
     this.province = provinceName;
   }
 
   display(radius) {
-    stroke(this.color);
+    stroke(provinceColors[this.province]);
     strokeWeight(this.thickness);
     noFill();
     strokeCap(SQUARE);
@@ -59,7 +58,6 @@ class Ring {
         angleCursor,
         angleCursor + arcSize,
         random(MIN_THICKNESS, MAX_THICKNESS),
-        provinceColors[province],
         province,
       );
 

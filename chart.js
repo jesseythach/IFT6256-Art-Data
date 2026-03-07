@@ -14,6 +14,8 @@ const INNER_RADIUS = 30;
 const MIN_THICKNESS = 4;
 const MAX_THICKNESS = 18;
 
+let colorProfile = 1;
+
 // ================================= Canvas =================================
 
 function windowResized() {
@@ -27,7 +29,13 @@ function setup() {
   let canvasHeight = windowHeight - 2 * MARGIN;
   createCanvas(canvasWidth, canvasHeight);
   angleMode(RADIANS);
-  colorMode(HSB);
+  colorMode(HSB, 360, 100, 100);
+
+  // Load saved color profile
+  let savedProfile = localStorage.getItem("colorProfile");
+  if (savedProfile !== null) {
+    colorProfile = Number(savedProfile);
+  }
 
   processData();
   years = Object.keys(emissions).map(Number);
@@ -86,9 +94,7 @@ function initializeRings() {
   // Normalize weights so rings fit inside canvas
   let totalWeight = spacingWeights.reduce((sum, weight) => sum + weight, 0);
   let scale = availableSpace / totalWeight;
-
-  spacingWeights = spacingWeights.map((weight) => weight * scale); 
-  // spacingWeights.push(map(noise(i * 0.25), 0, 1, 0.5, 1.5)); // Real spacing in pixels
+  spacingWeights = spacingWeights.map((weight) => weight * scale); // Real spacing in pixels
 
   // Build radiuses sequentially
   let runningRadius = INNER_RADIUS;
@@ -99,7 +105,8 @@ function initializeRings() {
 
   // Create a ring for each year
   rings = years.map(
-    (year, index) => new Ring(year, index, provinces, emissions[year], radiuses[index]),
+    (year, index) =>
+      new Ring(year, index, provinces, emissions[year], radiuses[index]),
   );
 }
 
@@ -114,20 +121,66 @@ function draw() {
   }
   pop();
 
-  // drawLegend();
+  drawLegend();
 }
 
+// ================================= Utilities =================================
 function generateProvinceColors(provinces) {
   const colors = {};
   provinces.forEach((p, i) => {
-    colors[p] = getProvinceColor(i, provinces.length);
+    colors[p] = getProvinceColor(p, i, provinces.length);
   });
   return colors;
 }
 
-function getProvinceColor(index, total) {
-  let hue = map(index, 0, total, 180, 280); // Blue to Purple range
-  return color(hue, 60, 80);
+function getProvinceColor(province, index, total) {
+  // Profile 1: Fixed province colors
+  if (colorProfile === 1) {
+    const PROVINCE_COLOR_MAP = {
+    "Alberta": "#0033A0",
+    "British Columbia": "#0033A0",
+    "Manitoba": "#C8102E",
+    "New Brunswick": "#F2A900",
+    "Newfoundland and Labrador": "#E41E26",
+    "Northwest Territories": "#0099CC",
+    "Nova Scotia": "#0033A0",
+    "Nunavut": "#FFD100",
+    "Ontario": "#C8102E",
+    "Prince Edward Island": "#FCD116",
+    "Quebec": "#003DA5",
+    "Saskatchewan": "#006847",
+    "Yukon": "#009739",
+  };
+    return color(PROVINCE_COLOR_MAP[province] || "#888888");
+  }
+
+  // Profile 2: Gradient from blue to purple
+  if (colorProfile === 2) {
+    let hue = map(index, 0, total, 180, 280);
+    return color(hue, 60, 80);
+  }
+
+  // Profile 3: Vibrant rainbow
+  if (colorProfile === 3) {
+    let hue = map(index, 0, total, 0, 360);
+    let saturation = map(index, 0, total, 80, 100);
+    let brightness = map(index, 0, total, 80, 100);
+    return color(hue, saturation, brightness);
+  }
+
+  // Profile 4: Pastel
+  if (colorProfile === 4) {
+    const PASTEL_COLORS = [
+      "#f7abcb",
+      "#7cde98",
+      "#e6dd91",
+      "#56a1e8",
+      "#a776cf",
+      "#e86d96",
+    ];
+    let hex = PASTEL_COLORS[index % PASTEL_COLORS.length];
+    return color(hex);
+  }
 }
 
 function drawLegend() {
@@ -147,4 +200,13 @@ function drawLegend() {
     text(provinces[i], 20, i * 20 + 6);
   }
   pop();
+}
+
+function keyPressed() {
+  const validProfiles = ["1", "2", "3", "4"];
+  if (validProfiles.includes(key)) {
+    colorProfile = Number(key);
+    provinceColors = generateProvinceColors(provinces);
+    localStorage.setItem("colorProfile", colorProfile);
+  }
 }
