@@ -21,12 +21,12 @@ class Segment {
 
 // Represents a ring for a specific year, containing segments for each province
 class Ring {
-  constructor(year, ringIndex, provinces, provinceEmission) {
+  constructor(year, ringIndex, provinces, provinceEmission, radius) {
     this.year = year;
     this.provinces = provinces;
-    this.radius = INNER_RADIUS + ringIndex * RING_SPACING;
+    this.radius = radius;
     this.rotation = random(TWO_PI); // Start with a random rotation
-    this.speed = random(-0.02, 0.02) * map(ringIndex, 0, 15, 1, 0.1);
+    this.speed = random(-0.02, 0.02) * map(ringIndex, 0, TOTAL_YEARS, 1, 0.1); // Outer rings rotate faster
     this.segments = [];
 
     this._initSegments(provinceEmission);
@@ -51,7 +51,8 @@ class Ring {
     let availableAngle = TWO_PI - maxGapAllowed; // Angle available for segments after accounting for gaps
 
     // Create segments for each province based on their emissions
-    for (let province of shuffledProvinces) {
+    for (let shuffledIndex = 0; shuffledIndex < shuffledProvinces.length; shuffledIndex++) {
+      let province = shuffledProvinces[shuffledIndex];
       let emission = provinceEmission[province];
       let arcSize = (emission / yearlyTotal) * availableAngle; // Scale arc size based on available angle
       let segment = new Segment(
@@ -63,7 +64,7 @@ class Ring {
       );
 
       this.segments.push(segment);
-      angleCursor += arcSize + scaledGaps[this.provinces.indexOf(province)];
+      angleCursor += arcSize + scaledGaps[shuffledIndex];
     }
   }
 

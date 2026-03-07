@@ -1,4 +1,4 @@
-const margin = 2;
+const MARGIN = 2;
 let table;
 let emissions = {};
 let years = [];
@@ -6,25 +6,25 @@ let rings = [];
 let provinces = [];
 let provinceColors = {};
 
-let startYear = 2009;
-let endYear = 2023;
+const START_YEAR = 2009;
+const END_YEAR = 2023;
+const TOTAL_YEARS = END_YEAR - START_YEAR + 1;
 
 const INNER_RADIUS = 30;
-const RING_SPACING = 28; // randomize it after animation
 const MIN_THICKNESS = 4;
 const MAX_THICKNESS = 18;
 
 // ================================= Canvas =================================
 
 function windowResized() {
-  let canvasWidth = windowWidth - 2 * margin;
-  let canvasHeight = windowHeight - 2 * margin;
+  let canvasWidth = windowWidth - 2 * MARGIN;
+  let canvasHeight = windowHeight - 2 * MARGIN;
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
 function setup() {
-  let canvasWidth = windowWidth - 2 * margin;
-  let canvasHeight = windowHeight - 2 * margin;
+  let canvasWidth = windowWidth - 2 * MARGIN;
+  let canvasHeight = windowHeight - 2 * MARGIN;
   createCanvas(canvasWidth, canvasHeight);
   angleMode(RADIANS);
   colorMode(HSB);
@@ -44,7 +44,7 @@ function preload() {
 function processData() {
   let currentProvince = "";
 
-  for (let year = startYear; year <= endYear; year++) {
+  for (let year = START_YEAR; year <= END_YEAR; year++) {
     emissions[year] = {};
   }
 
@@ -58,7 +58,7 @@ function processData() {
       sector === "Total, industries and households" &&
       currentProvince !== "Canada"
     ) {
-      for (let year = startYear; year <= endYear; year++) {
+      for (let year = START_YEAR; year <= END_YEAR; year++) {
         let emissionValue = table.getString(row, year.toString());
         emissions[year][currentProvince] = Number(
           emissionValue.replace(/,/g, "").trim(),
@@ -72,9 +72,34 @@ function processData() {
 function initializeRings() {
   randomSeed(42);
 
+  let radiuses = [];
+  let spacingWeights = [];
+
+  let maxRadius = min(width, height) * 0.42; // Max radius for outermost ring
+  let availableSpace = maxRadius - INNER_RADIUS - MAX_THICKNESS;
+
+  // Generate random relative spacing weights for each ring
+  for (let year = 0; year < TOTAL_YEARS; year++) {
+    spacingWeights.push(random(0.5, 1.5));
+  }
+
+  // Normalize weights so rings fit inside canvas
+  let totalWeight = spacingWeights.reduce((sum, weight) => sum + weight, 0);
+  let scale = availableSpace / totalWeight;
+
+  spacingWeights = spacingWeights.map((weight) => weight * scale); 
+  // spacingWeights.push(map(noise(i * 0.25), 0, 1, 0.5, 1.5)); // Real spacing in pixels
+
+  // Build radiuses sequentially
+  let runningRadius = INNER_RADIUS;
+  for (let year = 0; year < TOTAL_YEARS; year++) {
+    radiuses.push(runningRadius);
+    runningRadius += spacingWeights[year];
+  }
+
   // Create a ring for each year
   rings = years.map(
-    (year, index) => new Ring(year, index, provinces, emissions[year]),
+    (year, index) => new Ring(year, index, provinces, emissions[year], radiuses[index]),
   );
 }
 
