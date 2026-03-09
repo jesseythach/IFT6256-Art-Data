@@ -3,6 +3,11 @@
 
 <br>
 
+## Data to Visual Mapping
+My code takes greenhouse gas emissions data from Canadian provinces (2009 to 2023) and turns it into a circular animated composition made of rings and arc segments. Each ring represents a year between 2009 and 2023, and the rings are arranged from the center outward. Within each ring, arc segments represent the provinces. The length of each segment is proportional to that province’s greenhouse gas emissions for the corresponding year. Colours are used to distinguish the provinces (in the first colour profile). Hovering over a segment displays the province name, the year, and the emissions amount in kilotonnes.
+
+<br>
+
 ## Getting Started
 ### Option 1: Locally
 - Open `index.html` in your web browser.
