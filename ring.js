@@ -34,7 +34,7 @@ class Ring {
     this.provinces = provinces;
     this.radius = radius;
     this.rotation = random(TWO_PI); // Start with a random rotation
-    this.speed = random(-0.02, 0.02) * map(ringIndex, 0, TOTAL_YEARS, 1, 0.1); // Outer rings rotate faster
+    this.speed = random(-0.02, 0.02) * map(ringIndex, 0, TOTAL_YEARS, 1, 0.1); // Bigger rings rotate slower than smaller ones
     this.segments = [];
 
     this._initSegments(provinceEmission);
@@ -42,20 +42,20 @@ class Ring {
 
   _initSegments(provinceEmission) {
     let shuffledProvinces = shuffle([...this.provinces]);
-    let yearlyTotal = Object.values(provinceEmission).reduce((a, b) => a + b, 0);
-
+    
     // Generate random gaps between segments, then scale them to fit within the circle
     let rawGaps = shuffledProvinces.map(() => random(0.1, 1.5));
     let cumulativeRawGaps = rawGaps.reduce((a, b) => a + b, 0);
-
+    
     let maxGapAllowed = TWO_PI * random(0.1, 0.8); // Allow gaps to take up 10% to 80% of the circle
     let scale = maxGapAllowed / cumulativeRawGaps;
     let scaledGaps = rawGaps.map((g) => g * scale);
-
+    
     let angleCursor = 0;
     let availableAngle = TWO_PI - maxGapAllowed; // Angle available for segments after accounting for gaps
-
+    
     // Create segments for each province based on their emissions
+    let yearlyTotal = Object.values(provinceEmission).reduce((a, b) => a + b, 0);
     for (let shuffledIndex = 0; shuffledIndex < shuffledProvinces.length; shuffledIndex++) {
       let province = shuffledProvinces[shuffledIndex];
       let emission = provinceEmission[province];

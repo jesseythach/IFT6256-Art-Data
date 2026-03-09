@@ -75,17 +75,16 @@ function initializeRings() {
 
   let radiuses = [];
   let spacingWeights = [];
-
   let maxRadius = min(width, height) * 0.45; // Max radius for outermost ring
-  let availableSpace = maxRadius - MAX_THICKNESS;
-
+  
   // Generate random relative spacing weights for each ring
   for (let year = 0; year < TOTAL_YEARS; year++) {
     spacingWeights.push(random(1, 4));
   }
-
+  
   // Normalize weights so rings fit inside canvas
   let totalWeight = spacingWeights.reduce((sum, weight) => sum + weight, 0);
+  let availableSpace = maxRadius - MAX_THICKNESS;
   let scale = availableSpace / totalWeight;
   spacingWeights = spacingWeights.map((weight) => weight * scale); // Real spacing in pixels
 
