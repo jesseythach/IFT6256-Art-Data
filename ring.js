@@ -14,7 +14,7 @@ class Segment {
     strokeCap(SQUARE);
     arc(0, 0, radius * 2, radius * 2, this.start, this.end);
   }
- 
+
   // Check if mouse is over this segment based on polar coordinates
   isMouseOver(radius, angle, dist) {
     let inner = radius - this.thickness / 2;
@@ -42,10 +42,7 @@ class Ring {
 
   _initSegments(provinceEmission) {
     let shuffledProvinces = shuffle([...this.provinces]);
-    let yearlyTotal = Object.values(provinceEmission).reduce(
-      (a, b) => a + b,
-      0,
-    );
+    let yearlyTotal = Object.values(provinceEmission).reduce((a, b) => a + b, 0);
 
     // Generate random gaps between segments, then scale them to fit within the circle
     let rawGaps = shuffledProvinces.map(() => random(0.1, 1.5));
@@ -59,11 +56,7 @@ class Ring {
     let availableAngle = TWO_PI - maxGapAllowed; // Angle available for segments after accounting for gaps
 
     // Create segments for each province based on their emissions
-    for (
-      let shuffledIndex = 0;
-      shuffledIndex < shuffledProvinces.length;
-      shuffledIndex++
-    ) {
+    for (let shuffledIndex = 0; shuffledIndex < shuffledProvinces.length; shuffledIndex++) {
       let province = shuffledProvinces[shuffledIndex];
       let emission = provinceEmission[province];
       let arcSize = (emission / yearlyTotal) * availableAngle; // Scale arc size based on available angle
@@ -94,16 +87,14 @@ class Ring {
 
   // Determine if mouse is hovering over any segment in this ring
   getHoveredSegment(mouseAngle, mouseDist) {
-    let adjustedRotation = abs(this.rotation) % TWO_PI * Math.sign(this.rotation);
+    let adjustedRotation = (abs(this.rotation) % TWO_PI) * Math.sign(this.rotation);
     let adjustedAngle = mouseAngle - adjustedRotation;
 
     if (adjustedAngle < 0) adjustedAngle += TWO_PI;
     if (adjustedAngle > TWO_PI) adjustedAngle -= TWO_PI;
 
     for (let seg of this.segments) {
-      if (seg.isMouseOver(this.radius, adjustedAngle, mouseDist)) {
-        return seg;
-      }
+      if (seg.isMouseOver(this.radius, adjustedAngle, mouseDist)) return seg;
     }
     return null;
   }

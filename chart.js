@@ -33,9 +33,7 @@ function setup() {
   colorMode(HSB, 360, 100, 100);
 
   let savedProfile = localStorage.getItem("colorProfile");
-  if (savedProfile !== null) {
-    colorProfile = Number(savedProfile);
-  }
+  if (savedProfile !== null) colorProfile = Number(savedProfile);
 
   processData();
   years = Object.keys(emissions).map(Number);
@@ -62,15 +60,10 @@ function processData() {
     if (geo !== "") currentProvince = geo; // Get province name
 
     // Keep total emissions for industries and households only
-    if (
-      sector === "Total, industries and households" &&
-      currentProvince !== "Canada"
-    ) {
+    if (sector === "Total, industries and households" && currentProvince !== "Canada") {
       for (let year = START_YEAR; year <= END_YEAR; year++) {
         let emissionValue = table.getString(row, year.toString());
-        emissions[year][currentProvince] = Number(
-          emissionValue.replace(/,/g, "").trim(),
-        );
+        emissions[year][currentProvince] = Number(emissionValue.replace(/,/g, "").trim());
       }
     }
   }
